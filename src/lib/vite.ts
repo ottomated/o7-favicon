@@ -39,6 +39,11 @@ export function o7Favicon(options: Options): Plugin {
 		name: 'o7-favicon',
 		config(_, env) {
 			is_build = env.command === 'build';
+			return {
+				optimizeDeps: {
+					exclude: [module_id],
+				},
+			};
 		},
 		configureServer(server) {
 			// Serve favicon.ico in dev mode

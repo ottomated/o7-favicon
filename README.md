@@ -30,13 +30,21 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [
-    o7Favicon({ path: './favicon.png', webmanifest: { name: 'Name' } }),
+    o7Favicon({
+      // Can use any image that `sharp` accepts. Ideally .svg!
+      path: './favicon.png',
+      webmanifest: { name: 'Name' }
+    }),
   ],
 });
 
 ```
 
 ## Changelog
+
+### 0.0.2
+
+- Fix dependency pre-bundling
 
 ### 0.0.1
 
