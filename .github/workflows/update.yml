@@ -26,10 +26,10 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Lint
         run: pnpm lint
 
       - name: Publish
-        run: pnpm publish
+        run: pnpm publish --no-git-checks
