@@ -42,7 +42,7 @@ export default defineConfig({
 
 ## Changelog
 
-### 0.0.2
+### 0.0.3
 
 - Fix dependency pre-bundling
 
