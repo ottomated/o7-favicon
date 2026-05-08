@@ -98,7 +98,7 @@ export function o7Favicon(options: Options): Plugin {
 						source: optimized,
 					})}__`;
 				} else {
-					return add_dev_file('favicon.svg', 'image/svg+xml', optimized);
+					svg_asset = add_dev_file('favicon.svg', 'image/svg+xml', optimized);
 				}
 			}
 

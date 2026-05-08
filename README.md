@@ -42,6 +42,10 @@ export default defineConfig({
 
 ## Changelog
 
+### 0.0.4
+
+- Fix svg favicons
+
 ### 0.0.3
 
 - Fix dependency pre-bundling

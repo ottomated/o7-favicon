@@ -6,7 +6,7 @@ import PluginInspect from 'vite-plugin-inspect';
 export default defineConfig({
 	plugins: [
 		sveltekit(),
-		o7Favicon({ path: './src/favicon.png', webmanifest: { name: 'test' } }),
+		o7Favicon({ path: './src/favicon.svg', webmanifest: { name: 'test' } }),
 		PluginInspect(),
 	],
 });
