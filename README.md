@@ -42,6 +42,10 @@ export default defineConfig({
 
 ## Changelog
 
+### 0.0.5
+
+- Fix small svgs not being scaled up enough
+
 ### 0.0.4
 
 - Fix svg favicons
