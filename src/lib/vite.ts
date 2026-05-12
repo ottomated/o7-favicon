@@ -83,10 +83,15 @@ export function o7Favicon(options: Options): Plugin {
 			if (!source_exists) {
 				this.error(`"${options.path}" does not exist.`);
 			}
-			const source_img = sharp(options.path, { density: 512 /* for svgs */ });
 
 			let svg_asset: string | null = null;
+			let density: number | undefined;
 			if (options.path.endsWith('.svg')) {
+				// Calculate required density
+				const img = await sharp(options.path).metadata();
+				density =
+					((512 * (img.density ?? 72)) / img.width) *
+					1.5 /* bigger than necessary in case of fractional svg size */;
 				const optimized = optimize(await readFile(options.path, 'utf8'), {
 					path: options.path,
 					multipass: true,
@@ -101,6 +106,7 @@ export function o7Favicon(options: Options): Plugin {
 					svg_asset = add_dev_file('favicon.svg', 'image/svg+xml', optimized);
 				}
 			}
+			const source_img = sharp(options.path, { density });
 
 			const meta = await source_img.metadata();
 			if (meta.width !== meta.height) {
