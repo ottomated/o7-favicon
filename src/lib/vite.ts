@@ -64,165 +64,171 @@ export function o7Favicon(options: Options): Plugin {
 				next();
 			});
 		},
-		resolveId(id) {
-			if (id === module_id) {
+		resolveId: {
+			filter: {
+				id: new RegExp(`^${module_id}$`),
+			},
+			handler() {
 				return '\0' + module_id;
-			}
+			},
 		},
-		async load(id) {
-			if (id !== '\0' + module_id) {
-				return null;
-			}
+		load: {
+			filter: {
+				id: new RegExp(`^\0${module_id}$`),
+			},
+			async handler() {
+				if (!options.path) {
+					this.error(
+						`Missing "path" in vite config - should point to the source favicon image.`,
+					);
+				}
+				const source_exists = await stat(options.path).catch(() => false);
+				if (!source_exists) {
+					this.error(`"${options.path}" in vite config does not exist.`);
+				}
 
-			if (!options.path) {
-				this.error(
-					`Missing "path" - should point to the source favicon image.`,
-				);
-			}
-			const source_exists = await stat(options.path).catch(() => false);
-			if (!source_exists) {
-				this.error(`"${options.path}" does not exist.`);
-			}
+				let svg_asset: string | null = null;
+				let density: number | undefined;
+				if (options.path.endsWith('.svg')) {
+					// Calculate required density
+					const img = await sharp(options.path).metadata();
+					density =
+						((512 * (img.density ?? 72)) / img.width) *
+						1.5 /* bigger than necessary in case of fractional svg size */;
+					const optimized = optimize(await readFile(options.path, 'utf8'), {
+						path: options.path,
+						multipass: true,
+					}).data;
+					if (is_build) {
+						svg_asset = `__VITE_ASSET__${this.emitFile({
+							type: 'asset',
+							name: 'favicon.svg',
+							source: optimized,
+						})}__`;
+					} else {
+						svg_asset = add_dev_file('favicon.svg', 'image/svg+xml', optimized);
+					}
+				}
+				const source_img = sharp(options.path, { density });
 
-			let svg_asset: string | null = null;
-			let density: number | undefined;
-			if (options.path.endsWith('.svg')) {
-				// Calculate required density
-				const img = await sharp(options.path).metadata();
-				density =
-					((512 * (img.density ?? 72)) / img.width) *
-					1.5 /* bigger than necessary in case of fractional svg size */;
-				const optimized = optimize(await readFile(options.path, 'utf8'), {
-					path: options.path,
-					multipass: true,
-				}).data;
+				const meta = await source_img.metadata();
+				if (meta.width !== meta.height) {
+					this.error(
+						`"${options.path}" must be a square image (is ${meta.width}x${meta.height})`,
+					);
+				}
+				if (meta.width < 32) {
+					this.error(`"${options.path}" must be at least 32x32 pixels.`);
+				}
+				const failures: Array<[size: number, name: string]> = [];
+				const make_png_asset = async (name: string, size: number) => {
+					if (meta.width < size) {
+						failures.push([size, name + '.png']);
+						return null;
+					}
+					const buffer = await source_img.clone().resize(size).png().toBuffer();
+					if (is_build) {
+						return `__VITE_ASSET__${this.emitFile({
+							type: 'asset',
+							name: name + '.png',
+							source: buffer,
+						})}__`;
+					} else {
+						return add_dev_file(name + '.png', 'image/png', buffer);
+					}
+				};
+
+				//#region favicon.ico
+				const ico_parts: Array<Buffer> = [];
+				const ico_sizes: Array<string> = [];
+				for (const size of [16, 32, 48]) {
+					if (meta.width < size) {
+						failures.push([size, `favicon.ico (size ${size})`]);
+						continue;
+					}
+					ico_sizes.push(`${size}x${size}`);
+					ico_parts.push(
+						await source_img.clone().resize(size).png().toBuffer(),
+					);
+				}
+
+				ico_buffer = ico.encode(ico_parts);
 				if (is_build) {
-					svg_asset = `__VITE_ASSET__${this.emitFile({
+					this.emitFile({
 						type: 'asset',
-						name: 'favicon.svg',
-						source: optimized,
-					})}__`;
-				} else {
-					svg_asset = add_dev_file('favicon.svg', 'image/svg+xml', optimized);
+						fileName: 'favicon.ico',
+						source: ico_buffer,
+					});
 				}
-			}
-			const source_img = sharp(options.path, { density });
+				//#endregion
 
-			const meta = await source_img.metadata();
-			if (meta.width !== meta.height) {
-				this.error(
-					`"${options.path}" must be a square image (is ${meta.width}x${meta.height})`,
-				);
-			}
-			if (meta.width < 32) {
-				this.error(`"${options.path}" must be at least 32x32 pixels.`);
-			}
-			const failures: Array<[size: number, name: string]> = [];
-			const make_png_asset = async (name: string, size: number) => {
-				if (meta.width < size) {
-					failures.push([size, name + '.png']);
-					return null;
+				//#region site.webmanifest
+				const webmanifest_icons: Array<ImageResource> = [];
+				for (const size of [192, 512]) {
+					const exists = options.webmanifest?.icons?.some(
+						(i) => i.sizes === `${size}x${size}` && i.type === 'image/png',
+					);
+					if (exists) continue;
+					const asset_id = await make_png_asset(`android-${size}`, size);
+					if (!asset_id) continue;
+					webmanifest_icons.push({
+						src: asset_id,
+						sizes: `${size}x${size}`,
+						type: 'image/png',
+					});
 				}
-				const buffer = await source_img.clone().resize(size).png().toBuffer();
+				if (
+					svg_asset &&
+					!options.webmanifest?.icons?.some((i) => i.type === 'image/svg+xml')
+				) {
+					webmanifest_icons.push({
+						src: svg_asset,
+						sizes: 'any',
+						type: 'image/svg+xml',
+					});
+				}
+				options.webmanifest ??= {};
+				if (webmanifest_icons.length) {
+					options.webmanifest.icons ??= [];
+					options.webmanifest.icons.push(...webmanifest_icons);
+				}
+				let webmanifest_export: string;
 				if (is_build) {
-					return `__VITE_ASSET__${this.emitFile({
+					webmanifest_asset_id = this.emitFile({
 						type: 'asset',
-						name: name + '.png',
-						source: buffer,
-					})}__`;
+						name: 'site.webmanifest',
+						source: JSON.stringify(options.webmanifest),
+					});
+					webmanifest_export = `"__VITE_ASSET__${webmanifest_asset_id}__"`;
 				} else {
-					return add_dev_file(name + '.png', 'image/png', buffer);
+					webmanifest_export = JSON.stringify(
+						add_dev_file(
+							'site.webmanifest',
+							'application/manifest+json',
+							JSON.stringify(options.webmanifest),
+						),
+					);
 				}
-			};
 
-			//#region favicon.ico
-			const ico_parts: Array<Buffer> = [];
-			const ico_sizes: Array<string> = [];
-			for (const size of [16, 32, 48]) {
-				if (meta.width < size) {
-					failures.push([size, `favicon.ico (size ${size})`]);
-					continue;
-				}
-				ico_sizes.push(`${size}x${size}`);
-				ico_parts.push(await source_img.clone().resize(size).png().toBuffer());
-			}
+				//#endregion
 
-			ico_buffer = ico.encode(ico_parts);
-			if (is_build) {
-				this.emitFile({
-					type: 'asset',
-					fileName: 'favicon.ico',
-					source: ico_buffer,
-				});
-			}
-			//#endregion
-
-			//#region site.webmanifest
-			const webmanifest_icons: Array<ImageResource> = [];
-			for (const size of [192, 512]) {
-				const exists = options.webmanifest?.icons?.some(
-					(i) => i.sizes === `${size}x${size}` && i.type === 'image/png',
-				);
-				if (exists) continue;
-				const asset_id = await make_png_asset(`android-${size}`, size);
-				if (!asset_id) continue;
-				webmanifest_icons.push({
-					src: asset_id,
-					sizes: `${size}x${size}`,
-					type: 'image/png',
-				});
-			}
-			if (
-				svg_asset &&
-				!options.webmanifest?.icons?.some((i) => i.type === 'image/svg+xml')
-			) {
-				webmanifest_icons.push({
-					src: svg_asset,
-					sizes: 'any',
-					type: 'image/svg+xml',
-				});
-			}
-			options.webmanifest ??= {};
-			if (webmanifest_icons.length) {
-				options.webmanifest.icons ??= [];
-				options.webmanifest.icons.push(...webmanifest_icons);
-			}
-			let webmanifest_export: string;
-			if (is_build) {
-				webmanifest_asset_id = this.emitFile({
-					type: 'asset',
-					name: 'site.webmanifest',
-					source: JSON.stringify(options.webmanifest),
-				});
-				webmanifest_export = `"__VITE_ASSET__${webmanifest_asset_id}__"`;
-			} else {
-				webmanifest_export = JSON.stringify(
-					add_dev_file(
-						'site.webmanifest',
-						'application/manifest+json',
-						JSON.stringify(options.webmanifest),
-					),
-				);
-			}
-
-			//#endregion
-
-			const module = `
+				const module = `
 				export const apple_touch_icon = ${JSON.stringify(await make_png_asset('apple-touch-icon', 180))};
 				export const webmanifest = ${webmanifest_export};
 				export const favicon_sizes = ${JSON.stringify(ico_sizes.join(' '))};
 				export const favicon_svg = ${JSON.stringify(svg_asset)};
 			`;
-			if (failures.length) {
-				this.warn(
-					`Failed to generate ${failures.length} favicon${failures.length === 1 ? '' : 's'}. Please provide a larger input image (currently ${meta.width}x${meta.height}):`,
-				);
-				for (const [size, name] of failures) {
-					this.warn(`  ${name} (required size ${size}x${size})`);
+				if (failures.length) {
+					this.warn(
+						`Failed to generate ${failures.length} favicon${failures.length === 1 ? '' : 's'}. Please provide a larger input image (currently ${meta.width}x${meta.height}):`,
+					);
+					for (const [size, name] of failures) {
+						this.warn(`  ${name} (required size ${size}x${size})`);
+					}
 				}
-			}
 
-			return module;
+				return module;
+			},
 		},
 		generateBundle(_, bundle) {
 			if (!webmanifest_asset_id) return;
