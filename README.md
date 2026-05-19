@@ -42,6 +42,10 @@ export default defineConfig({
 
 ## Changelog
 
+### 0.0.6
+
+- Add rolldown filters to speed up vite plugin
+
 ### 0.0.5
 
 - Fix small svgs not being scaled up enough
