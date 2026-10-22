@@ -1,6 +1,6 @@
 {
 	"name": "@o7/favicon",
-	"version": "0.0.7",
+	"version": "0.0.8",
 	"description": "Automatically generate favicons for your Svelte app",
 	"keywords": [
 		"favicon",
