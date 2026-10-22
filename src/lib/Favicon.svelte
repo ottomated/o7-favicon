@@ -1,10 +1,5 @@
 <script lang="ts">
-	import {
-		apple_touch_icon,
-		favicon_svg,
-		favicon_sizes,
-		webmanifest,
-	} from 'virtual:o7-favicon';
+	import { apple_touch_icon, favicon_svg, favicon_sizes, webmanifest } from 'virtual:o7-favicon';
 </script>
 
 <svelte:head>

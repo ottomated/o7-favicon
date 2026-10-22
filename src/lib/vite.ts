@@ -21,15 +21,8 @@ export function o7Favicon(options: Options): Plugin {
 	let webmanifest_asset_id: string | undefined;
 	let ico_buffer: Buffer | undefined;
 
-	const dev_files = new Map<
-		string,
-		{ buffer: Buffer | string; mime_type: string }
-	>();
-	function add_dev_file(
-		name: string,
-		mime_type: string,
-		buffer: Buffer | string,
-	) {
+	const dev_files = new Map<string, { buffer: Buffer | string; mime_type: string }>();
+	function add_dev_file(name: string, mime_type: string, buffer: Buffer | string) {
 		const url = `${dev_server_prefix}${name}`;
 		dev_files.set(url, { buffer, mime_type });
 		return url;
@@ -78,9 +71,7 @@ export function o7Favicon(options: Options): Plugin {
 			},
 			async handler() {
 				if (!options.path) {
-					this.error(
-						`Missing "path" in vite config - should point to the source favicon image.`,
-					);
+					this.error(`Missing "path" in vite config - should point to the source favicon image.`);
 				}
 				const source_exists = await stat(options.path).catch(() => false);
 				if (!source_exists) {
@@ -94,7 +85,7 @@ export function o7Favicon(options: Options): Plugin {
 					const img = await sharp(options.path).metadata();
 					density =
 						((512 * (img.density ?? 72)) / img.width) *
-						1.5 /* bigger than necessary in case of fractional svg size */;
+						1.5; /* bigger than necessary in case of fractional svg size */
 					const optimized = optimize(await readFile(options.path, 'utf8'), {
 						path: options.path,
 						multipass: true,
@@ -113,9 +104,7 @@ export function o7Favicon(options: Options): Plugin {
 
 				const meta = await source_img.metadata();
 				if (meta.width !== meta.height) {
-					this.error(
-						`"${options.path}" must be a square image (is ${meta.width}x${meta.height})`,
-					);
+					this.error(`"${options.path}" must be a square image (is ${meta.width}x${meta.height})`);
 				}
 				if (meta.width < 32) {
 					this.error(`"${options.path}" must be at least 32x32 pixels.`);
@@ -147,9 +136,7 @@ export function o7Favicon(options: Options): Plugin {
 						continue;
 					}
 					ico_sizes.push(`${size}x${size}`);
-					ico_parts.push(
-						await source_img.clone().resize(size).png().toBuffer(),
-					);
+					ico_parts.push(await source_img.clone().resize(size).png().toBuffer());
 				}
 
 				ico_buffer = ico.encode(ico_parts);
@@ -177,10 +164,7 @@ export function o7Favicon(options: Options): Plugin {
 						type: 'image/png',
 					});
 				}
-				if (
-					svg_asset &&
-					!options.webmanifest?.icons?.some((i) => i.type === 'image/svg+xml')
-				) {
+				if (svg_asset && !options.webmanifest?.icons?.some((i) => i.type === 'image/svg+xml')) {
 					webmanifest_icons.push({
 						src: svg_asset,
 						sizes: 'any',
@@ -248,10 +232,7 @@ export function o7Favicon(options: Options): Plugin {
 				const icon_asset = bundle[this.getFileName(asset_id)];
 
 				const relative_path = path
-					.relative(
-						path.dirname(webmanifest_asset.fileName),
-						path.dirname(icon_asset.fileName),
-					)
+					.relative(path.dirname(webmanifest_asset.fileName), path.dirname(icon_asset.fileName))
 					.replace(/\\/g, '/');
 				const filename = path.basename(icon_asset.fileName);
 
