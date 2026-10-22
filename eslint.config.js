@@ -1,19 +1,19 @@
-import path from 'node:path';
-import { includeIgnoreFile } from '@eslint/compat';
 import js from '@eslint/js';
+import { loadConfig } from '@sveltejs/load-config';
 import svelte from 'eslint-plugin-svelte';
 import { defineConfig } from 'eslint/config';
 import globals from 'globals';
 import ts from 'typescript-eslint';
-import svelteConfig from './svelte.config.js';
 
-const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
+const svelte_config = await loadConfig('.');
+if (!svelte_config || !('config' in svelte_config)) {
+	throw new Error(`Failed to load Svelte config: ${svelte_config?.error}`);
+}
 
 export default defineConfig(
-	includeIgnoreFile(gitignorePath),
 	js.configs.recommended,
-	...ts.configs.recommended,
-	...svelte.configs.recommended,
+	ts.configs.recommended,
+	svelte.configs.recommended,
 	{
 		languageOptions: { globals: { ...globals.browser, ...globals.node } },
 		rules: { 'no-undef': 'off' },
@@ -25,8 +25,11 @@ export default defineConfig(
 				projectService: true,
 				extraFileExtensions: ['.svelte'],
 				parser: ts.parser,
-				svelteConfig,
+				svelteConfig: svelte_config.config,
 			},
 		},
+	},
+	{
+		ignores: ['**/.svelte-kit', '.wrangler/', 'build/', 'dist/'],
 	},
 );
