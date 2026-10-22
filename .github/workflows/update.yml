@@ -11,22 +11,16 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - name: Install Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          registry-url: 'https://registry.npmjs.org'
-
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
         with:
           cache: true
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          runtime: node@lts
+          install: true
+          require-lockfile: true
 
       - name: Lint
         run: pnpm lint
