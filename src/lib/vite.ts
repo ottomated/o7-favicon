@@ -71,11 +71,11 @@ export function o7Favicon(options: Options): Plugin {
 			},
 			async handler() {
 				if (!options.path) {
-					this.error(`Missing "path" in vite config - should point to the source favicon image.`);
+					this.error(`Missing "path" in vite config - should point to the source favicon image`);
 				}
 				const source_exists = await stat(options.path).catch(() => false);
 				if (!source_exists) {
-					this.error(`"${options.path}" in vite config does not exist.`);
+					this.error(`Could not find an image at "${options.path}"`);
 				}
 
 				let svg_asset: string | null = null;
@@ -104,10 +104,10 @@ export function o7Favicon(options: Options): Plugin {
 
 				const meta = await source_img.metadata();
 				if (meta.width !== meta.height) {
-					this.error(`"${options.path}" must be a square image (is ${meta.width}x${meta.height})`);
+					this.error(`"${options.path}" must be a square image (got ${meta.width}x${meta.height})`);
 				}
 				if (meta.width < 32) {
-					this.error(`"${options.path}" must be at least 32x32 pixels.`);
+					this.error(`"${options.path}" must be at least 32x32 pixels`);
 				}
 				const failures: Array<[size: number, name: string]> = [];
 				const make_png_asset = async (name: string, size: number) => {
