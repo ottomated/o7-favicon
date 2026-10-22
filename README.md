@@ -42,6 +42,11 @@ export default defineConfig({
 
 ## Changelog
 
+### 0.0.7
+
+- Update dependencies to latest
+- fix webmanifests generating incorrectly when multiple vite builds run
+
 ### 0.0.6
 
 - Add rolldown filters to speed up vite plugin
