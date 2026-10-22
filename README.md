@@ -13,7 +13,7 @@
 ```svelte
 <!-- /+layout.svelte -->
 <script>
-  import Favicon from '@o7/favicon'
+  import { Favicon } from '@o7/favicon';
 
   const { children } = $props();
 </script>
@@ -41,6 +41,11 @@ export default defineConfig({
 ```
 
 ## Changelog
+
+### 0.0.8
+
+- Fix example
+- Tweak error messages for clarity
 
 ### 0.0.7
 
