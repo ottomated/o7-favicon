@@ -150,9 +150,10 @@ export function o7Favicon(options: Options): Plugin {
 				//#endregion
 
 				//#region site.webmanifest
+				const webmanifest = structuredClone(options.webmanifest ?? {});
 				const webmanifest_icons: Array<ImageResource> = [];
 				for (const size of [192, 512]) {
-					const exists = options.webmanifest?.icons?.some(
+					const exists = webmanifest.icons?.some(
 						(i) => i.sizes === `${size}x${size}` && i.type === 'image/png',
 					);
 					if (exists) continue;
@@ -164,24 +165,23 @@ export function o7Favicon(options: Options): Plugin {
 						type: 'image/png',
 					});
 				}
-				if (svg_asset && !options.webmanifest?.icons?.some((i) => i.type === 'image/svg+xml')) {
+				if (svg_asset && !webmanifest.icons?.some((i) => i.type === 'image/svg+xml')) {
 					webmanifest_icons.push({
 						src: svg_asset,
 						sizes: 'any',
 						type: 'image/svg+xml',
 					});
 				}
-				options.webmanifest ??= {};
 				if (webmanifest_icons.length) {
-					options.webmanifest.icons ??= [];
-					options.webmanifest.icons.push(...webmanifest_icons);
+					webmanifest.icons ??= [];
+					webmanifest.icons.push(...webmanifest_icons);
 				}
 				let webmanifest_export: string;
 				if (is_build) {
 					webmanifest_asset_id = this.emitFile({
 						type: 'asset',
 						name: 'site.webmanifest',
-						source: JSON.stringify(options.webmanifest),
+						source: JSON.stringify(webmanifest),
 					});
 					webmanifest_export = `"__VITE_ASSET__${webmanifest_asset_id}__"`;
 				} else {
@@ -189,7 +189,7 @@ export function o7Favicon(options: Options): Plugin {
 						add_dev_file(
 							'site.webmanifest',
 							'application/manifest+json',
-							JSON.stringify(options.webmanifest),
+							JSON.stringify(webmanifest),
 						),
 					);
 				}
